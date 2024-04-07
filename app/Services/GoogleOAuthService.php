@@ -15,7 +15,7 @@ class GoogleOAuthService
     {
         $this->client = new Client();
 
-        // Configuration du client Google
+        // config client Google
         $this->client->setClientId(env('GOOGLE_CLIENT_ID'));
         $this->client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
         $this->client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
@@ -23,14 +23,12 @@ class GoogleOAuthService
         $this->client->setIncludeGrantedScopes(true);
         $this->client->addScope(GoogleCalendar::CALENDAR);
 
-        // Configuration du client Guzzle avec la désactivation de la vérification SSL
+        // client Guzzle + la désactivation de la vérification SSL
         $guzzleClient = new GuzzleClient([
             'curl' => [
                 CURLOPT_SSL_VERIFYPEER => false,
             ],
         ]);
-
-        // Définir le client Guzzle personnalisé pour le client Google
         $this->client->setHttpClient($guzzleClient);
     }
 
@@ -44,14 +42,18 @@ class GoogleOAuthService
         $accessToken = $this->client->fetchAccessTokenWithAuthCode($code);
         $this->client->setAccessToken($accessToken);
         $accessTokenJson = json_encode($accessToken);
-        // Stocker le jeton d'accès dans la session
         Session::put('google_access_token', $accessTokenJson);
 
     }
 
     public function getAccessToken()
     {
-        return Session::get('google_access_token');
+
+      $accessToken = Session::get('google_access_token');
+      $accessTokenData = json_decode($accessToken, true);
+      $accessToken = $accessTokenData['access_token'];
+
+        return $accessToken;
     }
 
     public function getClient()

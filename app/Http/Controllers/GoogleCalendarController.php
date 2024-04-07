@@ -19,8 +19,6 @@ class GoogleCalendarController extends Controller
         $code = $request->get('code');
         $googleOAuthService = new GoogleOAuthService();
         $googleOAuthService->setAccessToken($code);
-        
-        // Rediriger l'utilisateur vers la page de son calendrier Google
         return redirect()->route('events.create');
     }
 }

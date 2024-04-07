@@ -34,7 +34,7 @@
   <tbody>
     @foreach ($events as $event)
     <tr>
-      <th scope="row"> {{ $event->description }}</th>
+      <td><a href="{{ route('events.show', $event->id) }}">{{ $event->description }}</a></td>
       @if ($event->opportunity)
       <td>{{ $event->opportunity->created_at }}</td>
       @endif
@@ -56,7 +56,7 @@
 @endforeach 
 </table>
 
-<form action="{{ route('events.destroy', ['event' => 9]) }}" method="POST">
+<form action="{{ route('events.destroy', ['event' => 1]) }}" method="POST">
   @csrf
   @method('DELETE')
   <button type="submit">Supprimer</button>
