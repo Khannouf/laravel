@@ -18,3 +18,46 @@
   </div>
   <button type="submit">Créer l'événement</button>
 </form>
+
+
+<table>
+  <caption> Events déja existants </caption> 
+  <thead>
+    <tr>
+      <th scope="col">Events description</th>
+      <th scope="col">Opportunitie Date</th>
+      <th scope="col">Created By</th>
+      <th scope="col">Prospect name</th>
+      <th scope="col">Step of the event</th>
+    </tr>
+  </thead>
+  <tbody>
+    @foreach ($events as $event)
+    <tr>
+      <th scope="row"> {{ $event->description }}</th>
+      @if ($event->opportunity)
+      <td>{{ $event->opportunity->created_at }}</td>
+      @endif
+      @if ($event->user)
+      <td>{{ $event->user->name }}</td>
+      @endif
+      @if ($event->prospect)
+      <td>{{ $event->prospect->name }}</td>
+      @endif
+      @if ($event->step)
+      <td>{{ $event->step->step }}</td>
+      @endif
+    </tr>
+    @endforeach 
+  </tbody>
+  @foreach ($events as $event)
+  <option value="{{ $opportunity->id }}">{{ $opportunity->id }}</option>
+
+@endforeach 
+</table>
+
+<form action="{{ route('events.destroy', ['event' => 9]) }}" method="POST">
+  @csrf
+  @method('DELETE')
+  <button type="submit">Supprimer</button>
+</form>

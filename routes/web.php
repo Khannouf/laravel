@@ -3,6 +3,7 @@
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\OpportunityController;
 use App\Http\Controllers\StepController;
+use App\Http\Controllers\GoogleCalendarController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -53,3 +54,7 @@ Route::post('/opportunities', [OpportunityController::class, 'store'])->name('op
 
 Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
 Route::post('/events', [EventController::class, 'store'])->name('events.store');
+Route::delete('events/delete/{event}', [EventController::class, 'destroy'])->name('events.destroy');
+
+Route::get('/auth/google', [GoogleCalendarController::class, 'redirectToGoogle']);
+Route::get('/auth/google/callback', [GoogleCalendarController::class, 'handleGoogleCallback']);
