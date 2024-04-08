@@ -6,3 +6,8 @@
   <input type="text" name="description" value={{ $event->description }}>
   <button type="submit">Modifier</button>
 </form>
+<form action="{{ route('events.destroy', ['event' => $event->id]) }}" method="POST">
+  @csrf
+  @method('DELETE')
+  <button type="submit">Supprimer</button>
+</form>
