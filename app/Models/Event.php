@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class Event extends Model
 {
     use HasFactory;
-    protected $fillable = ['opportunity_id', 'step_id', 'type_event', 'description', 'gcalendar_event_id'];
+    protected $fillable = ['opportunity_id', 'step_id', 'type_event', 'description', 'gcalendar_event_id', 'startDateTime', 'endDateTime'];
 }

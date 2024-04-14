@@ -11,6 +11,8 @@ use Attribute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use App\Services\GoogleCalendarService;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class EventController extends Controller
 {
@@ -35,23 +37,25 @@ class EventController extends Controller
       'type_event' => 'required|string|max:255',
       'description' => 'required|string',
     ]);
-    $opportunity = Opportunity::findOrFail($request->opportunity_id);
+    //$opportunity = Opportunity::findOrFail($request->opportunity_id);
 
     $eventData = [
       'access_token' => Session::get('google_access_token'),
       'summary' => $request->type_event,
       'description' => $request->description,
-      'startDateTime' => '2024-04-07T12:00:00',
-      'endDateTime' => '2024-04-08T12:00:00',
+      'startDateTime' => $request->startDateTime,//'2024-04-14T15:00:00',
+      'endDateTime' => $request->endDateTime,//'2024-04-14T17:00:00',
 
     ];
     $event = $this->googleCalendarService->createEvent($eventData);
     Event::create([
-      'opportunity_id' => $request->opportunity_id,
-      'step_id' => $opportunity->step_id, 
+      //'opportunity_id' => $request->opportunity_id,
+      //'step_id' => $opportunity->step_id, 
       'type_event' => $request->type_event,
       'description' => $request->description,
-      'gcalendar_event_id' => $event->id
+      'gcalendar_event_id' => $event->id,
+      'startDateTime' => $request->startDateTime,//'2024-04-14T15:00:00',
+      'endDateTime' => $request->endDateTime,//'2024-04-14T17:00:00',
     ]);
 
     return redirect()->route('events.create')->with('success', 'Événement créé avec succès!');
@@ -76,7 +80,7 @@ class EventController extends Controller
       'summary' => $request->type_event,
       'description' => $request->description,
       'startDateTime' => $event->startDateTime,
-      'endDateTime' => $event->endDateTime,     
+      'endDateTime' => $event->endDateTime,
     ];
     $this->googleCalendarService->updateEvent($event->gcalendar_event_id, $eventData);
 
@@ -92,18 +96,161 @@ class EventController extends Controller
   {
     $events = Event::all();
     $events->transform(function ($event) {
-      $opportunity = Opportunity::findOrFail($event->opportunity_id);
-      $prospect = Prospect::findOrFail($opportunity->prospect_id);
-      $user = User::select('name', 'email')
-        ->findOrFail($opportunity->user_id);
-      $step = Step::findOrFail($opportunity->step_id);
-      $event->opportunity = $opportunity;
-      $event->prospect = $prospect;
-      $event->user = $user;
-      $event->step = $step;
+      //$opportunity = Opportunity::findOrFail($event->opportunity_id);
+      //$prospect = Prospect::findOrFail($opportunity->prospect_id);
+      //$user = User::select('name', 'email')
+      //->findOrFail($opportunity->user_id);
+      //$step = Step::findOrFail($opportunity->step_id);
+      //$event->opportunity = $opportunity;
+      //$event->prospect = $prospect;
+      //$event->user = $user;
+      //$event->step = $step;
       return $event;
     });
     return $events;
   }
+  public function showGoogleEvents()
+  {
+    $startOfWeek = new \DateTime();
+    $startOfWeek->setISODate((int) $startOfWeek->format('o'), (int) $startOfWeek->format('W'));
+    $startOfWeek->setTime(0, 0, 0);
 
+    $googleEvents = $this->googleCalendarService->getAllEvents();
+    $events = Event::where('startDateTime', '>=', $startOfWeek->format('c'))->get();
+
+    $eventIds = $events->pluck('gcalendar_event_id')->toArray();
+    $formattedEvents = [];
+    foreach ($googleEvents as $googleEvent) {
+      if (!in_array($googleEvent['id'], $eventIds)) {
+        //echo ''. $googleEvent['name'] .''. 
+        $dateStart = $googleEvent['start'];
+        $dateEnd = $googleEvent['end'];
+        $start = new Carbon($dateStart);
+        $end = new Carbon($dateEnd);
+        $start->setTimeZone('UTC');
+        $end->setTimezone('UTC');
+        $startDate = $start->format('Y-m-d H:i:s');
+        $endDate = $end->format('Y-m-d H:i:s');
+
+        //élément qui ont été crée dans google agenda mais qui ne sont pas dans la bdd
+        $formattedEvents[] = [
+          'id' => $googleEvent['id'],
+          'name' => $googleEvent['name'],
+          'description' => $googleEvent['description'],
+          'start' => $startDate, // Gère les événements toute la journée
+          'end' => $endDate,
+          'status' => $googleEvent['status'],
+          //'updated' => $googleEvent['lastUpdate'],
+          // Ajoutez d'autres champs selon les besoins
+        ];
+        Event::create([
+          'type_event' => $googleEvent['name'],
+          'description' => $googleEvent['description'],
+          'gcalendar_event_id' => $googleEvent['id'],
+          'startDateTime' => $startDate,//'2024-04-14T15:00:00',
+          'endDateTime' => $endDate,//'2024-04-14T17:00:00',
+        ]);
+      }
+    }
+    return $formattedEvents;
+  }
+
+  public function showUpdatedGoogleEvents()
+  {
+    $startOfWeek = new \DateTime();
+    $startOfWeek->setISODate((int) $startOfWeek->format('o'), (int) $startOfWeek->format('W'));
+    $startOfWeek->setTime(0, 0, 0);
+
+    $googleEvents = $this->googleCalendarService->getUpdatedEvents();
+    //dd($googleEvents); 
+    $events = Event::where('startDateTime', '>=', $startOfWeek->format('c'))->get();
+    $eventIds = $events->pluck('gcalendar_event_id')->toArray();
+    $formattedEvents = [];
+    foreach ($googleEvents as $googleEvent) {
+      $googleEventLastUpdate = new Carbon($googleEvent['lastUpdate']);
+      $foundUpdated = false;
+      $dateStart = $googleEvent['start'];
+      $dateEnd = $googleEvent['end'];
+      $start = new Carbon($dateStart);
+      $end = new Carbon($dateEnd);
+      $start->setTimeZone('UTC');
+      $end->setTimezone('UTC');
+      $startDate = $start->format('Y-m-d H:i:s');
+      $endDate = $end->format('Y-m-d H:i:s');
+      foreach ($events as $event) {
+        //dd($event);
+        $localUpdatedAt = new Carbon($event->updated_at);
+        $formattedLocalUpdatedAt = $localUpdatedAt->toIso8601ZuluString();
+        if ($formattedLocalUpdatedAt < $googleEventLastUpdate) {
+          $foundUpdated = true;
+        }
+      }
+      if ($foundUpdated) {
+      //élément qui ont été crée dans google agenda mais qui ne sont pas dans la bdd
+        $formattedEvents[] = [
+          'id' => $googleEvent['id'],
+          'name' => $googleEvent['name'],
+          'description'=> $googleEvent['description'],
+          'start' => $googleEvent['start'], // Gère les événements toute la journée
+          'end' => $googleEvent['end'],
+          'status' => $googleEvent['status'],
+          'update' => $googleEvent['lastUpdate'],
+          'nameEvent' => $event->updated_at,
+          // Ajoutez d'autres champs selon les besoins
+        ];
+
+        try {
+          // Récupérer l'événement par gcalendar_event_id ou échouer avec une exception
+          $event = Event::where('gcalendar_event_id', $googleEvent['id'])->firstOrFail();
+          $event->update([
+            'type_event' => $googleEvent['name'],
+            'description' => $googleEvent['description'],
+            'gcalendar_event_id' => $googleEvent['id'],
+            'startDateTime' => $startDate,//'2024-04-14T15:00:00',
+            'endDateTime' => $endDate,//'2024-04-14T17:00:00',
+          ]);
+          
+        } catch (ModelNotFoundException $e) {
+          // Gérer le cas où aucun événement n'est trouvé avec un gcalendar_event_id correspondant
+          return response()->json(['error' => 'Evenement non trouvé : '.$e], 404);
+        }
+      }
+    }
+    ;
+    dd($formattedEvents);
+    return $googleEvents;
+  }
+  public function showDeletedGoogleEvents()
+  {
+    $startOfWeek = new \DateTime();
+    $startOfWeek->setISODate((int) $startOfWeek->format('o'), (int) $startOfWeek->format('W'));
+    $startOfWeek->setTime(0, 0, 0);
+
+    $googleEvents = $this->googleCalendarService->getDeletedEvents();
+    $events = Event::where('startDateTime', '>=', $startOfWeek->format('c'))->get();
+    $formattedEvents = [];
+    foreach ($googleEvents as $googleEvent) {
+      foreach ($events as $event) {
+        if ($event->gcalendar_event_id == $googleEvent['id']) {
+          $formattedEvents[] = [
+            'id' => $googleEvent['id'],
+            'Nom' => $googleEvent['Nom'],
+            'start' => $googleEvent['start'], // Gère les événements toute la journée
+            'end' => $googleEvent['end'],
+            'status' => $googleEvent['status'],
+          ];
+          try {
+            // Récupérer l'événement par gcalendar_event_id ou échouer avec une exception
+            $event = Event::where('gcalendar_event_id', $googleEvent['id'])->firstOrFail();
+            $event->delete();
+            
+          } catch (ModelNotFoundException $e) {
+            // Gérer le cas où aucun événement n'est trouvé avec un gcalendar_event_id correspondant
+            return response()->json(['error' => 'Evenement non trouvé : '.$e], 404);
+          }
+        }
+      }
+    }
+    return response()->json(['type'=> 'success']);
+  }
 }

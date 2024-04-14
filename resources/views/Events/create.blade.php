@@ -16,6 +16,14 @@
       <label for="description">Description :</label>
       <textarea id="description" name="description" required></textarea>
   </div>
+  <div>
+    <label for="startDateTime">Date et heure de début :</label>
+    <input type="datetime-local" id="startDateTime" name="startDateTime" required>
+</div>
+<div>
+    <label for="endDateTime">Date et heure de fin :</label>
+    <input type="datetime-local" id="endDateTime" name="endDateTime" required>
+</div>
   <button type="submit">Créer l'événement</button>
 </form>
 

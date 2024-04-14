@@ -52,11 +52,15 @@ Route::post('/steps', [StepController::class, 'store'])->name('steps.store');
 Route::get('/opportunities/create', [OpportunityController::class, 'create'])->name('opportunities.create');
 Route::post('/opportunities', [OpportunityController::class, 'store'])->name('opportunities.store');
 
-Route::get('events//create/{event}', [EventController::class, 'show'])->name('events.show');
+Route::get('events/create/{event}', [EventController::class, 'show'])->name('events.show');
 Route::get('/events/create', [EventController::class, 'create'])->name('events.create');
 Route::post('/events', [EventController::class, 'store'])->name('events.store');
 Route::delete('events/delete/{event}', [EventController::class, 'destroy'])->name('events.destroy');
 Route::put('events/update/{event}', [EventController::class, 'update'])->name('events.update');
+
+Route::get('/events/google', [EventController::class,'showGoogleEvents'])->name('events.showGoogleEvents');
+Route::get('/events/google/delete', [EventController::class,'showDeletedGoogleEvents'])->name('events.showDeletedGoogleEvents');
+Route::get('/events/google/update', [EventController::class,'showUpdatedGoogleEvents'])->name('events.showUpdatedGoogleEvents');
 
 
 Route::get('/auth/google', [GoogleCalendarController::class, 'redirectToGoogle']);
